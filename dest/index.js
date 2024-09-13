@@ -90,33 +90,38 @@ function MintItem(to, p_name, p_imageUri, p_attributes) {
         console.log("nextTokenID" + nextTokenID);
         let metadata = new NftMetadata(nextTokenID, p_name, p_imageUri, p_attributes);
         CreateMetadata(metadata);
+        /*
         try {
-            if (privateKey) {
-                // Get the address to mint to
-                //let to: string = req.body.to ?? null;
-                // Get the quantity to mint if specified, default is one
-                // Connect to wallet with minter role
-                const signer = new ethers_1.Wallet(privateKey).connect(zkEvmProvider);
-                // Specify the function to call
-                const abi = ['function safeMint(address to, uint256 nextTokenID, uint256 amount, bytes memory data)'];
-                // Connect contract to the signer
-                const contract = new ethers_1.Contract("0x187cd0e729cfb925fed47c7ad0c10ca2f4d7d1c1", abi, signer);
-                // Mints the number of tokens specified contract.mintByQuantity(to, 1, gasOverrides);
-                const tx = yield contract.safeMint(to, nextTokenID, 1, [], gasOverrides);
-                yield tx.wait();
-                console.log("succes");
-                //return res.status(200).json({});
-            }
-            else {
-                console.log("failed");
-                //return res.status(500).json({});
-            }
-        }
-        catch (error) {
-            //check if we have the metadata created ifso remove it....
-            console.log(error);
-            //return res.status(400).json({ message: 'Failed to mint to user' });
-        }
+          
+          if (privateKey) {
+            // Get the address to mint to
+            //let to: string = req.body.to ?? null;
+            // Get the quantity to mint if specified, default is one
+            
+      
+            // Connect to wallet with minter role
+            const signer = new Wallet(privateKey).connect(zkEvmProvider);
+      
+            // Specify the function to call
+            const abi = ['function safeMint(address to, uint256 nextTokenID, uint256 amount, bytes memory data)'];
+            // Connect contract to the signer
+            const contract = new Contract("0x187cd0e729cfb925fed47c7ad0c10ca2f4d7d1c1", abi, signer);
+      
+            // Mints the number of tokens specified contract.mintByQuantity(to, 1, gasOverrides);
+            const tx = await contract.safeMint(to, nextTokenID, 1, [], gasOverrides);
+            await tx.wait();
+            console.log("succes");
+            //return res.status(200).json({});
+          } else {
+            console.log("failed");
+            //return res.status(500).json({});
+          }
+      
+        } catch (error) {
+          //check if we have the metadata created ifso remove it....
+          console.log(error);
+          //return res.status(400).json({ message: 'Failed to mint to user' });
+        }*/
     });
 }
 function CreateMetadata(metaData) {
@@ -137,10 +142,9 @@ function NextTokenId(collectionAddress, imxClient) {
             // eslint-disable-next-line no-await-in-loop
             const assets = yield imxClient.listAssets({
                 collection: collectionAddress,
-                cursor,
             });
+            console.log(assets);
             remaining = assets.remaining;
-            cursor = assets.cursor;
             for (const asset of assets.result) {
                 const id = parseInt(asset.token_id, 10);
                 if (id > tokenId) {
