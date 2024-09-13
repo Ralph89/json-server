@@ -75,7 +75,7 @@ http_1.default.createServer(app).listen(3000, () => console.log('Listening on po
 class NftMetadata {
     constructor(p_id, p_name, p_image, p_attributes) {
         this.id = p_id;
-        this.name = p_name;
+        this.name = p_name + " " + p_id;
         this.image = p_image;
         this.attributes = p_attributes;
     }
@@ -86,7 +86,7 @@ function MintItem(to, p_name, p_imageUri, p_attributes) {
         const { IMXClient, imxClientConfig } = sdk_1.x;
         const environment = Environment.SANDBOX;
         const imxClient = new IMXClient(imxClientConfig({ environment }));
-        let nextTokenID = yield NextTokenId("0xe690da5e67df083fe198d2af0d17aad420ac1973", imxClient);
+        let nextTokenID = yield NextTokenId("0x187cd0e729cfb925fed47c7ad0c10ca2f4d7d1c1", imxClient);
         console.log("nextTokenID" + nextTokenID);
         let metadata = new NftMetadata(nextTokenID, p_name, p_imageUri, p_attributes);
         CreateMetadata(metadata);
@@ -98,11 +98,11 @@ function MintItem(to, p_name, p_imageUri, p_attributes) {
                 // Connect to wallet with minter role
                 const signer = new ethers_1.Wallet(privateKey).connect(zkEvmProvider);
                 // Specify the function to call
-                const abi = ['function mintByQuantity(address to, uint256 quantity)'];
+                const abi = ['function safeMint(address to, uint256 nextTokenID, uint256 amount, bytes memory data)'];
                 // Connect contract to the signer
-                const contract = new ethers_1.Contract("0xe690da5e67df083fe198d2af0d17aad420ac1973", abi, signer);
-                // Mints the number of tokens specified
-                const tx = yield contract.mintByQuantity(to, 1, gasOverrides);
+                const contract = new ethers_1.Contract("0x187cd0e729cfb925fed47c7ad0c10ca2f4d7d1c1", abi, signer);
+                // Mints the number of tokens specified contract.mintByQuantity(to, 1, gasOverrides);
+                const tx = yield contract.safeMint(to, nextTokenID, 1, [], gasOverrides);
                 yield tx.wait();
                 console.log("succes");
                 //return res.status(200).json({});

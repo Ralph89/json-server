@@ -75,11 +75,11 @@ async function MintItem(to:string, p_name: string, p_imageUri: string, p_attribu
   const { IMXClient, imxClientConfig } = x;
   const environment = Environment.SANDBOX;
   const imxClient = new IMXClient(imxClientConfig({ environment }));
-  let nextTokenID = await NextTokenId("0xe690da5e67df083fe198d2af0d17aad420ac1973", imxClient);
+  let nextTokenID = await NextTokenId("0x187cd0e729cfb925fed47c7ad0c10ca2f4d7d1c1", imxClient);
   console.log("nextTokenID" + nextTokenID);
   let metadata = new NftMetadata(nextTokenID, p_name, p_imageUri, p_attributes);
   CreateMetadata(metadata);
-  
+
   try {
     
     if (privateKey) {
@@ -92,12 +92,12 @@ async function MintItem(to:string, p_name: string, p_imageUri: string, p_attribu
       const signer = new Wallet(privateKey).connect(zkEvmProvider);
 
       // Specify the function to call
-      const abi = ['function safeMint(address to, uint256 nextTokenID)'];
+      const abi = ['function safeMint(address to, uint256 nextTokenID, uint256 amount, bytes memory data)'];
       // Connect contract to the signer
       const contract = new Contract("0x187cd0e729cfb925fed47c7ad0c10ca2f4d7d1c1", abi, signer);
 
-      // Mints the number of tokens specified
-      const tx = await contract.mintByQuantity(to, 1, gasOverrides);
+      // Mints the number of tokens specified contract.mintByQuantity(to, 1, gasOverrides);
+      const tx = await contract.safeMint(to, nextTokenID, 1, [], gasOverrides);
       await tx.wait();
       console.log("succes");
       //return res.status(200).json({});
