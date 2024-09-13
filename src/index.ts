@@ -47,11 +47,10 @@ router.get(
   '/item/:id',
   async (req: Request, res: Response) => {
     //need to get the file
-  
-    await fs.readFile('metadata/' + req.params.id+".json", 'utf8', function (err, data) {
+    fs.readFile('metadata/' + req.params.id+".json", 'utf8', function (err, data) {
       if (err) return;
       res.writeHead(200);
-      res.end(JSON.stringify(data));
+      res.end(data);
     });
   });
 
