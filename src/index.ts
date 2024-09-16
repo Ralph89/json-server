@@ -75,7 +75,7 @@ async function MintItem(to:string, p_name: string, p_imageUri: string, p_attribu
   console.log("nextTokenID" + nextTokenID);
   let metadata = new NftMetadata(nextTokenID, p_name, p_imageUri, p_attributes);
   CreateMetadata(metadata);
-  /*
+  
   try {
     
     if (privateKey) {
@@ -106,7 +106,7 @@ async function MintItem(to:string, p_name: string, p_imageUri: string, p_attribu
     //check if we have the metadata created ifso remove it....
     console.log(error);
     //return res.status(400).json({ message: 'Failed to mint to user' });
-  }*/
+  }
 }
 
 
