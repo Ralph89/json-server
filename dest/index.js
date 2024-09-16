@@ -36,7 +36,6 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = __importDefault(require("express"));
-const sdk_1 = require("@imtbl/sdk");
 const fs = __importStar(require("fs"));
 const cors_1 = __importDefault(require("cors"));
 const http_1 = __importDefault(require("http"));
@@ -82,11 +81,7 @@ class NftMetadata {
 }
 function MintItem(to, p_name, p_imageUri, p_attributes) {
     return __awaiter(this, void 0, void 0, function* () {
-        const { Environment } = sdk_1.config;
-        const { IMXClient, imxClientConfig } = sdk_1.x;
-        const environment = Environment.SANDBOX;
-        const imxClient = new IMXClient(imxClientConfig({ environment }));
-        let nextTokenID = yield NextTokenId("0x187cd0e729cfb925fed47c7ad0c10ca2f4d7d1c1", imxClient);
+        let nextTokenID = yield FindNextTokenId('0xe690da5e67df083fe198d2af0d17aad420ac1973');
         console.log("nextTokenID" + nextTokenID);
         let metadata = new NftMetadata(nextTokenID, p_name, p_imageUri, p_attributes);
         CreateMetadata(metadata);
@@ -103,12 +98,12 @@ function MintItem(to, p_name, p_imageUri, p_attributes) {
             const signer = new Wallet(privateKey).connect(zkEvmProvider);
       
             // Specify the function to call
-            const abi = ['function safeMint(address to, uint256 nextTokenID, uint256 amount, bytes memory data)'];
+            const abi = ['function safeMint(address to, uint256 nextTokenID)'];
             // Connect contract to the signer
-            const contract = new Contract("0x187cd0e729cfb925fed47c7ad0c10ca2f4d7d1c1", abi, signer);
+            const contract = new Contract("0xe690da5e67df083fe198d2af0d17aad420ac1973", abi, signer);
       
             // Mints the number of tokens specified contract.mintByQuantity(to, 1, gasOverrides);
-            const tx = await contract.safeMint(to, nextTokenID, 1, [], gasOverrides);
+            const tx = await contract.safeMint(to, nextTokenID, gasOverrides);
             await tx.wait();
             console.log("succes");
             //return res.status(200).json({});
@@ -124,6 +119,40 @@ function MintItem(to, p_name, p_imageUri, p_attributes) {
         }*/
     });
 }
+function mint1155() {
+    /*
+    try {
+      
+      if (privateKey) {
+        // Get the address to mint to
+        //let to: string = req.body.to ?? null;
+        // Get the quantity to mint if specified, default is one
+        
+  
+        // Connect to wallet with minter role
+        const signer = new Wallet(privateKey).connect(zkEvmProvider);
+  
+        // Specify the function to call
+        const abi = ['function safeMint(address to, uint256 nextTokenID, uint256 amount, bytes memory data)'];
+        // Connect contract to the signer
+        const contract = new Contract("0xe690da5e67df083fe198d2af0d17aad420ac1973", abi, signer);
+  
+        // Mints the number of tokens specified contract.mintByQuantity(to, 1, gasOverrides);
+        const tx = await contract.safeMint(to, nextTokenID, 1, [], gasOverrides);
+        await tx.wait();
+        console.log("succes");
+        //return res.status(200).json({});
+      } else {
+        console.log("failed");
+        //return res.status(500).json({});
+      }
+  
+    } catch (error) {
+      //check if we have the metadata created ifso remove it....
+      console.log(error);
+      //return res.status(400).json({ message: 'Failed to mint to user' });
+    }*/
+}
 function CreateMetadata(metaData) {
     console.log("CreateMetadata");
     fs.writeFile('metadata/' + metaData.id + '.json', JSON.stringify(metaData), function (err) {
@@ -133,26 +162,27 @@ function CreateMetadata(metaData) {
         console.log("File created!");
     });
 }
-function NextTokenId(collectionAddress, imxClient) {
+function FindNextTokenId(contractAddress) {
     return __awaiter(this, void 0, void 0, function* () {
-        let remaining = 0;
-        let cursor;
-        let tokenId = 0;
-        do {
-            // eslint-disable-next-line no-await-in-loop
-            const assets = yield imxClient.listAssets({
-                collection: collectionAddress,
-            });
-            console.log(assets);
-            remaining = assets.remaining;
-            for (const asset of assets.result) {
-                const id = parseInt(asset.token_id, 10);
-                if (id > tokenId) {
-                    tokenId = id;
-                }
+        let lastTokenId = 0;
+        yield fetch('https://api.sandbox.immutable.com/v1/chains/imtbl-zkevm-testnet/collections/' + contractAddress + '/nfts')
+            .then((response) => response.text())
+            .then((body) => {
+            const obj = JSON.parse(body);
+            //do we have a next page?
+            let nextPage = obj.page.next_cursor !== null;
+            if (nextPage === true) {
+                //we need to get the next page
             }
-        } while (remaining > 0);
-        return tokenId + 1;
+            else {
+                //the next up minting id is going to be the last item + 1
+                const lastItem = obj.result[obj.result.length - 1];
+                console.log(lastItem);
+                lastTokenId = parseInt(lastItem.token_id);
+            }
+        });
+        console.log("done total");
+        return lastTokenId + 1;
     });
 }
 ;

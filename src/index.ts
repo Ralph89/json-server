@@ -71,15 +71,11 @@ class NftMetadata
 
 async function MintItem(to:string, p_name: string, p_imageUri: string, p_attributes: string)//, p_collectionAddress: string
 {  
-  const { Environment } = config;
-  const { IMXClient, imxClientConfig } = x;
-  const environment = Environment.SANDBOX;
-  const imxClient = new IMXClient(imxClientConfig({ environment }));
-  let nextTokenID = await NextTokenId("0xe690da5e67df083fe198d2af0d17aad420ac1973", imxClient);
+  let nextTokenID = await FindNextTokenId('0xe690da5e67df083fe198d2af0d17aad420ac1973');
   console.log("nextTokenID" + nextTokenID);
   let metadata = new NftMetadata(nextTokenID, p_name, p_imageUri, p_attributes);
   CreateMetadata(metadata);
-  
+  /*
   try {
     
     if (privateKey) {
@@ -110,7 +106,7 @@ async function MintItem(to:string, p_name: string, p_imageUri: string, p_attribu
     //check if we have the metadata created ifso remove it....
     console.log(error);
     //return res.status(400).json({ message: 'Failed to mint to user' });
-  }
+  }*/
 }
 
 
@@ -162,29 +158,26 @@ function CreateMetadata(metaData: NftMetadata)
   });
 }
 
-async function NextTokenId(collectionAddress: string, imxClient: x.IMXClient) 
+async function FindNextTokenId(contractAddress: string) : Promise<number>
 {
-
-  let remaining = 0;
-  let cursor: string | undefined;
-  let tokenId = 0;
-
-  do {
-    // eslint-disable-next-line no-await-in-loop
-    const assets = await imxClient.listAssets({
-      collection: collectionAddress,
-    });
-    console.log(assets);
-    remaining = assets.remaining;
-
-
-    for (const asset of assets.result) {
-      const id = parseInt(asset.token_id, 10);
-      if (id > tokenId) {
-        tokenId = id;
+   let lastTokenId = 0;
+    await fetch('https://api.sandbox.immutable.com/v1/chains/imtbl-zkevm-testnet/collections/'+contractAddress+'/nfts')
+    .then((response) => response.text())
+    .then((body) => {
+      const obj = JSON.parse(body);
+      //do we have a next page?
+      let nextPage = obj.page.next_cursor !== null;
+      if (nextPage === true)
+      {
+        //we need to get the next page
       }
-    }
-  } while (remaining > 0);
-
-  return tokenId + 1;
+      else{
+        //the next up minting id is going to be the last item + 1
+        const lastItem = obj.result[obj.result.length -1];
+        console.log(lastItem);
+        lastTokenId = parseInt(lastItem.token_id);
+      }
+    }); 
+    console.log("done total");
+    return lastTokenId + 1;
 };
