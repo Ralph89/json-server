@@ -4,7 +4,6 @@ import express, {
     Request,
     Response,
   } from 'express';
-import { config, x } from '@imtbl/sdk';
 import * as fs from 'fs';
 import cors from 'cors';
 import http from 'http';
@@ -29,8 +28,7 @@ const gasOverrides = {
 };
 //router
 router.post('/mint/NFT', (req: Request, res: Response) => {
-  console.log("asd");
-    MintItem(req.body.to, req.body.name, req.body.image, req.body.attributes);
+    MintItem(req.body.to, req.body.name, req.body.image, req.body.attributes, req.body.collectionAddress, res);
   },
 );
 
@@ -50,7 +48,7 @@ router.get(
 
   http.createServer(app).listen(
     3000,
-    () => console.log('Listening on port 3000'),
+    () => { console.log('Listening on port 3000')},
   );
 
 
@@ -69,83 +67,77 @@ class NftMetadata
     }
   }
 
-async function MintItem(to:string, p_name: string, p_imageUri: string, p_attributes: string)//, p_collectionAddress: string
+//Minting the item on the blockchain
+//we need to make this function a promise so the game actually knows something has been minted or if we encountered an error
+async function MintItem(to:string, p_name: string, p_imageUri: string, p_attributes: string, p_collectionAddress: string, res: Response) : Promise<Response>
 {  
-  let nextTokenID = await FindNextTokenId('0xe690da5e67df083fe198d2af0d17aad420ac1973');
-  console.log("nextTokenID" + nextTokenID);
+  //calculating the next token id we need to mint
+  let nextTokenID = await FindNextTokenId(p_collectionAddress);
+  //creating the metadata
   let metadata = new NftMetadata(nextTokenID, p_name, p_imageUri, p_attributes);
+  //storing the metadata on the server
   CreateMetadata(metadata);
   
   try {
-    
     if (privateKey) {
-      // Get the address to mint to
-      //let to: string = req.body.to ?? null;
-      // Get the quantity to mint if specified, default is one
-      
-
       // Connect to wallet with minter role
       const signer = new Wallet(privateKey).connect(zkEvmProvider);
-
       // Specify the function to call
       const abi = ['function safeMint(address to, uint256 nextTokenID)'];
       // Connect contract to the signer
-      const contract = new Contract("0xe690da5e67df083fe198d2af0d17aad420ac1973", abi, signer);
-
-      // Mints the number of tokens specified contract.mintByQuantity(to, 1, gasOverrides);
+      const contract = new Contract(p_collectionAddress, abi, signer);
+      // contract call to mint the nft
       const tx = await contract.safeMint(to, nextTokenID, gasOverrides);
       await tx.wait();
+      //promise callback should go here
       console.log("succes");
-      //return res.status(200).json({});
+      return res.status(200).json({});
     } else {
+
+      //promise callback should go here
       console.log("failed");
-      //return res.status(500).json({});
+      RemoveMetaData(metadata, p_collectionAddress);
+      return res.status(500).json({});
     }
 
   } catch (error) {
     //check if we have the metadata created ifso remove it....
     console.log(error);
-    //return res.status(400).json({ message: 'Failed to mint to user' });
+    RemoveMetaData(metadata, p_collectionAddress);
+    //promise callback should go here
+    return res.status(400).json({ message: 'Failed to mint to user' });
   }
 }
 
 
+function RemoveMetaData(metaData: NftMetadata, collectionAddress: string)
+{
+  //find the metadata and remove it with fs
+  //we should check if something with that id exist before removing it
+  if (!DoesTokenExistOnChain(collectionAddress, metaData.id))
+    fs.unlink('metadata/' + metaData.id + '.json', (err) => {
+  });
+}
+
 function mint1155()
 {
+  //below is the actual contract code to mint an erc1155 nft
   /*
-  try {
-    
-    if (privateKey) {
-      // Get the address to mint to
-      //let to: string = req.body.to ?? null;
-      // Get the quantity to mint if specified, default is one
-      
-
       // Connect to wallet with minter role
       const signer = new Wallet(privateKey).connect(zkEvmProvider);
-
       // Specify the function to call
       const abi = ['function safeMint(address to, uint256 nextTokenID, uint256 amount, bytes memory data)'];
       // Connect contract to the signer
       const contract = new Contract("0xe690da5e67df083fe198d2af0d17aad420ac1973", abi, signer);
-
       // Mints the number of tokens specified contract.mintByQuantity(to, 1, gasOverrides);
       const tx = await contract.safeMint(to, nextTokenID, 1, [], gasOverrides);
-      await tx.wait();
-      console.log("succes");
-      //return res.status(200).json({});
-    } else {
-      console.log("failed");
-      //return res.status(500).json({});
-    }
-
-  } catch (error) {
-    //check if we have the metadata created ifso remove it....
-    console.log(error);
-    //return res.status(400).json({ message: 'Failed to mint to user' });
-  }*/
+  */
 }
 
+function MintWithMintingAPI()
+{
+  //we should look into this, I think this would remove the need of having our private key in the env file
+}
 
 function CreateMetadata(metaData: NftMetadata)
 {
@@ -158,26 +150,53 @@ function CreateMetadata(metaData: NftMetadata)
   });
 }
 
+
+async function DoesTokenExistOnChain(contractAddress: string, tokenId: number) : Promise<boolean>
+{
+  let exist = false;
+  await fetch('https://api.sandbox.immutable.com/v1/chains/imtbl-zkevm-testnet/collections/'+contractAddress+'/nfts' + tokenId)
+  .then((response) => 
+    {
+      console.log(response.status)
+      exist = response.status === 200;
+    }); 
+    return exist;
+}
+
+//Finds the next mintable token id.
 async function FindNextTokenId(contractAddress: string) : Promise<number>
 {
    let lastTokenId = 0;
-    await fetch('https://api.sandbox.immutable.com/v1/chains/imtbl-zkevm-testnet/collections/'+contractAddress+'/nfts')
+   let result = "";
+   //calling the web api with our collection contractAddress
+   await fetch('https://api.sandbox.immutable.com/v1/chains/imtbl-zkevm-testnet/collections/'+contractAddress+'/nfts')
     .then((response) => response.text())
     .then((body) => {
-      const obj = JSON.parse(body);
-      //do we have a next page?
-      let nextPage = obj.page.next_cursor !== null;
-      if (nextPage === true)
-      {
-        //we need to get the next page
-      }
-      else{
-        //the next up minting id is going to be the last item + 1
-        const lastItem = obj.result[obj.result.length -1];
-        console.log(lastItem);
-        lastTokenId = parseInt(lastItem.token_id);
-      }
-    }); 
-    console.log("done total");
-    return lastTokenId + 1;
-};
+      result = body;
+  });
+  const obj = JSON.parse(result);
+
+  lastTokenId = await GetNextCollectionPage(contractAddress, obj);
+  console.log(lastTokenId);
+  return lastTokenId + 1;
+}
+
+
+async function GetNextCollectionPage(contractAddress: string, body: any) : Promise<number>
+{
+  let allMetadata = body.result;
+  //while (body.page.next_cursor !== null){
+  //  await fetch('https://api.sandbox.immutable.com/v1/chains/imtbl-zkevm-testnet/collections/'+contractAddress+'/nfts?page_cursor='+ body.page.next_cursor);
+  //}
+  if (allMetadata.length > 0)
+  {
+    allMetadata.sort((n1: { token_id: number; },n2: { token_id: number; }) => n2.token_id - n1.token_id );
+    return parseInt(allMetadata[0].token_id);
+  }
+  else return 0;
+}
+
+async function TestTokenID()
+{
+  console.log(await FindNextTokenId("0x1e4701c49c690206f5139eeab3a698a93ff31e64"));
+}
