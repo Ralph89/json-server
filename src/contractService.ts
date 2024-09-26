@@ -1,12 +1,7 @@
-import { getContract, http, createWalletClient, defineChain } from "viem";
-import { privateKeyToAccount } from "viem/accounts";
+
 import { getDefaultProvider, Contract, Wallet } from 'ethers' // ethers v5
-import { TransactionResponse } from '@ethersproject/providers' // ethers v5
-import { ImmutableERC721MintByIdAbi } from '@imtbl/contracts'
 import * as dotenv from 'dotenv'
 import { config as immutableConfig, blockchainData } from '@imtbl/sdk'
-import { FindNextTokenId, NftMetadata, CreateMetadata } from './metadataService'
-import { Response } from 'express';
 dotenv.config()
 
 const PRIVATE_KEY = process.env.PRIVATE_KEY

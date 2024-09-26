@@ -2,7 +2,6 @@ import express from 'express'
 import { ethers } from 'ethers'
 import { readState, writeState } from '../stateManager'
 import { listNFTs, MintItem } from '../contractService'
-import * as fs from 'fs';
 import { CreateMetadata, NftMetadata, ReadMetadata } from '../metadataService';
 /**
  * @swagger
