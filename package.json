@@ -4,19 +4,21 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "start": "node ./dest/index.js",
-    "build": "yarn clean && tsc --build",
+    "start": "node ./dest/app.js",
+    "build": "tsc",
     "clean": "rm -rf ./dest",
     "lint": "eslint ."
   },
   "author": "Ralph Meertens",
   "license": "ISC",
   "dependencies": {
+    "@imtbl/contracts": "^2.2.10",
     "@imtbl/sdk": "^1.52.0",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
     "express": "^4.21.0",
-    "typescript": "^5.6.2"
+    "typescript": "^5.6.2",
+    "viem": "^2.21.14"
   },
   "devDependencies": {
     "@types/cors": "^2.8.17",
